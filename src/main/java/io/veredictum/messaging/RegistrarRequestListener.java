@@ -60,8 +60,7 @@ public class RegistrarRequestListener {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
         RegistrarRequest request = mapper.readValue(cr.value(), RegistrarRequest.class);
-        request.setOriginalFileHash(Hasher.hashString(request.getContentId()));
-        request.setTranscodedFileHash(Hasher.hashString(request.getContentId() + request.getContentId()));
+        // TODO get original content file hash and transcoded content file hash and set them in the request
         Future<TransactionReceipt> receiptFuture = requestHandler.handle(request);
         executorService.submit(new RegistrarReceiptSender(kafkaTemplate, registrarAckTopic, receiptFuture));
     }

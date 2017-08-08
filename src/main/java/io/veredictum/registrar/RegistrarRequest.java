@@ -21,7 +21,7 @@ public class RegistrarRequest {
 
     private int[] shares;
 
-    private String contentId;
+    private long contentId;
 
     private byte[] originalFileHash;
 
@@ -43,25 +43,12 @@ public class RegistrarRequest {
         this.shares = shares;
     }
 
-    public String getContentId() {
+    public long getContentId() {
         return contentId;
     }
 
-    public void setContentId(String contentId) {
-        if (contentId == null || contentId.length() > 6) {
-            throw new IllegalArgumentException("contentId cannot be NULL or exceeds 6 bytes");
-        }
-        final int fixedLength = 6;
-        char[] charArray = contentId.toCharArray();
-        char[] paddedCharArray = new char[fixedLength];
-        for (int i = 0; i < fixedLength ; i++) {
-            if (i < fixedLength - charArray.length) {
-                paddedCharArray[i] = '0';
-            } else {
-                paddedCharArray[i] = charArray[i  + charArray.length - fixedLength];
-            }
-        }
-        this.contentId = new String(paddedCharArray);
+    public void setContentId(long contentId) {
+        this.contentId = contentId;
     }
 
     public byte[] getOriginalFileHash() {

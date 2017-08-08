@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.DynamicArray;
 import org.web3j.abi.datatypes.generated.Bytes32;
-import org.web3j.abi.datatypes.generated.Bytes6;
+import org.web3j.abi.datatypes.generated.Bytes8;
 import org.web3j.abi.datatypes.generated.Uint8;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
@@ -25,6 +25,7 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.http.HttpService;
 
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
 
 /**
@@ -59,7 +60,7 @@ public class RegistrarRequestHandler {
         DynamicArray<Address> addressDynamicArray = convert(request.getAddresses());
         DynamicArray<Uint8> shareDynamicArray = convert(request.getShares());
         return contentAssetRegistrar.registerContent(addressDynamicArray, shareDynamicArray,
-                new Bytes6(request.getContentId().getBytes()),
+                new Bytes8(ByteBuffer.allocate(8).putLong(request.getContentId()).array()),
                 new Bytes32(request.getOriginalFileHash()),
                 new Bytes32(request.getTranscodedFileHash()));
     }
