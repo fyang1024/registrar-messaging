@@ -18,13 +18,13 @@ apply plugin: 'org.springframework.boot'
 sourceSets {
     main {
         java {
-            srcDir 'src'
+            srcDir 'src/main/java'
         }
     }
 
     test {
         java {
-            srcDir 'test'
+            srcDir 'src/test/java'
         }
     }
 }
@@ -46,7 +46,7 @@ dependencies {
     testCompile (
             'org.springframework.boot:spring-boot-starter-test',
             'org.springframework.kafka:spring-kafka-test:1.2.2.RELEASE',
-            'junit:junit:4.12'
+            'org.junit.jupiter:junit-jupiter-engine:5.0.0-RC2'
     )
 }
 
