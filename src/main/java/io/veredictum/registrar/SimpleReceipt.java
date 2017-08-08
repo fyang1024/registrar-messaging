@@ -1,6 +1,13 @@
 /*
-TODO add license
- */
+
+This software is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See MIT Licence for further details.
+<https://opensource.org/licenses/MIT>.
+
+*/
+
 package io.veredictum.registrar;
 
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
