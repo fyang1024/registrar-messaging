@@ -41,6 +41,9 @@ public class RegistrarRequest {
     }
 
     public void setContentId(String contentId) {
+        if (contentId == null || contentId.length() > 6) {
+            throw new IllegalArgumentException("contentId cannot be NULL or exceeds 6 bytes");
+        }
         final int fixedLength = 6;
         char[] charArray = contentId.toCharArray();
         char[] paddedCharArray = new char[fixedLength];
