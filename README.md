@@ -1,2 +1,6 @@
-# registrar-poc
-Veredictum Proof of Concept Registration Service
+# README
+
+Things to install
+* solidity
+* web3j
+* Apache Kafka (and ZooKeeper)
