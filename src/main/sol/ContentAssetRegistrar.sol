@@ -1,11 +1,17 @@
 /*
-TODO add license here
+
+This software is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+See MIT Licence for further details.
+<https://opensource.org/licenses/MIT>.
+
 */
 pragma solidity ^0.4.14;
 
 /**
 @title Content Asset Registrar
-Content Asset Registrar maintained by Veredictum and content owners
+Content Asset Registrar Smart Contract maintained by Veredictum and content owners
 
 @authors:
     Fei Yang <fei.yang@veredictum.io>
@@ -15,16 +21,14 @@ contract ContentAssetRegistrar {
 
     struct ContentOwnership {
         address owner;
-        bytes6 contentId; // embedded in the content by Veredictum
+        bytes6 contentId; // issued centrally by Veredictum and embedded into the content
         bytes32 originalFileHash;
         bytes32 transcodedFileHash;
         uint8 share; // percentage without %
     }
 
-    // make it public so that people can verify it against official address published by Veredictum
     address public veredictum;
 
-    // make them public so that 3rd party can access the data (read-only)
     mapping (address => mapping (bytes6 => ContentOwnership)) public contentIdRegistrar;
     mapping (bytes6 => bool) public contentIdRegistered;
     mapping (bytes6 => bytes32) public authorisedDomainsRegistrar; // mapping from contentId to hash of authorisedDomains
@@ -48,7 +52,7 @@ contract ContentAssetRegistrar {
     event UserRegistered (
         address userAddress,
         bytes32 userInfoHash
-    );
+    ); // ToDo: publish standard data structure so that owner can recreate their userInfoHash
 
     event AuthorisedDomainsRegistered (
         address owner,
@@ -61,12 +65,12 @@ contract ContentAssetRegistrar {
         _;
     }
 
-    // constructor
+    // Constructor
     function ContentAssetRegistrar() {
         veredictum = msg.sender;
     }
 
-    // for Veredictum to register content ownership
+    // for Veredictum to register content ownership on behalf of a customer
     function registerContent(
         address[] _owners,
         uint8[] _shares,
