@@ -1,7 +1,15 @@
+/*
+TODO add license
+ */
 package io.veredictum.registrar;
 
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
+/**
+ * A simplified receipt of Ethereum transaction to send back to client
+ *
+ * @author Fei Yang <fei.yang@veredictum.io>
+ */
 public class SimpleReceipt {
 
     private String transactionHash;

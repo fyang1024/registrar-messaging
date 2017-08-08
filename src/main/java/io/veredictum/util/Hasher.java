@@ -1,7 +1,7 @@
-package io.veredictum.util;
 /*
-  Created by Samuel G Brooks on 5/04/17.
+TODO add license
  */
+package io.veredictum.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +14,12 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * Utility class to hash file or text with SHA256
+ *
+ * @author Samuel G Brooks <sam.brooks@veredictum.io>
+ * @author Fei Yang <fei.yang@veredictum.io>
+ */
 public class Hasher {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Hasher.class);

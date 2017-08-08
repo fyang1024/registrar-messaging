@@ -1,3 +1,6 @@
+/*
+TODO add license
+ */
 package io.veredictum.registrar;
 
 import io.veredictum.generated.ContentAssetRegistrar;
@@ -17,6 +20,13 @@ import org.web3j.protocol.http.HttpService;
 import java.math.BigInteger;
 import java.util.concurrent.Future;
 
+/**
+ * It converts the {@link RegistrarRequest} to a Smart Contract function call
+ * to register content ownership on the Ethereum blockchain,
+ * and returns a {@link Future} of {@link TransactionReceipt}
+ *
+ * @author Fei Yang <fei.yang@veredictum.io>
+ */
 @Component
 public class RegistrarRequestHandler {
 

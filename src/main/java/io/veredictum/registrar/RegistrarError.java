@@ -1,5 +1,13 @@
+/*
+TODO add license
+ */
 package io.veredictum.registrar;
 
+/**
+ * It represents an error in backend processing and is sent back to client
+ *
+ * @author Fei Yang <fei.yang@veredictum.io>
+ */
 public class RegistrarError {
 
     private String type;

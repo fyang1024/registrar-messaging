@@ -1,5 +1,13 @@
+/*
+TODO add license
+ */
 package io.veredictum.registrar;
 
+/**
+ * It represents a request to register content ownership from client
+ *
+ * @author Fei Yang <fei.yang@veredictum.io>
+ */
 public class RegistrarRequest {
 
     private String[] addresses;

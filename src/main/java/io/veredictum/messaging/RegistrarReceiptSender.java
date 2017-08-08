@@ -1,5 +1,7 @@
+/*
+TODO add license
+ */
 package io.veredictum.messaging;
-
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,6 +15,11 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+/**
+ * It sends either a success receipt or an error to client
+ *
+ * @author Fei Yang <fei.yang@veredictum.io>
+ */
 public class RegistrarReceiptSender implements Runnable {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
