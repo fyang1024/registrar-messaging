@@ -9,7 +9,7 @@ See MIT Licence for further details.
 */
 pragma solidity ^0.4.14;
 
-/**
+/*
 @title Content Asset Registrar
 Content Asset Registrar Smart Contract maintained by Veredictum and content owners
 
@@ -21,7 +21,7 @@ contract ContentAssetRegistrar {
 
     struct ContentOwnership {
         address owner;
-        bytes6 contentId; // issued centrally by Veredictum and embedded into the content
+        bytes8 contentId; // issued centrally by Veredictum and embedded into the content
         bytes32 originalFileHash;
         bytes32 transcodedFileHash;
         uint8 share; // percentage without %
@@ -29,15 +29,15 @@ contract ContentAssetRegistrar {
 
     address public veredictum;
 
-    mapping (address => mapping (bytes6 => ContentOwnership)) public contentIdRegistrar;
-    mapping (bytes6 => bool) public contentIdRegistered;
-    mapping (bytes6 => bytes32) public authorisedDomainsRegistrar; // mapping from contentId to hash of authorisedDomains
+    mapping (address => mapping (bytes8 => ContentOwnership)) public contentIdRegistrar;
+    mapping (bytes8 => bool) public contentIdRegistered;
+    mapping (bytes8 => bytes32) public authorisedDomainsRegistrar; // mapping from contentId to hash of authorisedDomains
     mapping (address => bytes32) public userInfoHashRegistrar;
 
     event ContentRegistered (
         address[] _owners,
         uint8[] _shares,
-        bytes6 _contentId,
+        bytes8 _contentId,
         bytes32 _originalFileHash,
         bytes32 _transcodedFileHash
     );
@@ -45,7 +45,7 @@ contract ContentAssetRegistrar {
     event OwnershipTransferred (
         address from,
         address to,
-        bytes6 contentId,
+        bytes8 contentId,
         uint8 share
     );
 
@@ -56,7 +56,7 @@ contract ContentAssetRegistrar {
 
     event AuthorisedDomainsRegistered (
         address owner,
-        bytes6 contentId,
+        bytes8 contentId,
         bytes32 authorisedDomainsHash
     );
 
@@ -74,7 +74,7 @@ contract ContentAssetRegistrar {
     function registerContent(
         address[] _owners,
         uint8[] _shares,
-        bytes6 _contentId,
+        bytes8 _contentId,
         bytes32 _originalFileHash,
         bytes32 _transcodedFileHash
     )
@@ -110,7 +110,7 @@ contract ContentAssetRegistrar {
     }
 
     // for content owner to transfer ownership to other person
-    function transfer(address _other, bytes6 _contentId, uint8 _share) external {
+    function transfer(address _other, bytes8 _contentId, uint8 _share) external {
         require(contentIdRegistrar[msg.sender][_contentId].owner != 0);
         require(contentIdRegistrar[msg.sender][_contentId].share >= _share);
         require(contentIdRegistrar[msg.sender][_contentId].share > 0);
@@ -128,7 +128,7 @@ contract ContentAssetRegistrar {
     }
 
     // for content owner to register authorised domains hash for specific content
-    function registerAuthorisedDomains(bytes6 _contentId, bytes32 _authorisedDomainsHash) external {
+    function registerAuthorisedDomains(bytes8 _contentId, bytes32 _authorisedDomainsHash) external {
         require(contentIdRegistered[_contentId]);
         require(contentIdRegistrar[msg.sender][_contentId].owner != 0);
 
