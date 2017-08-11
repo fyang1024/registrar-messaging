@@ -29,9 +29,11 @@ import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.Response;
 import org.web3j.protocol.core.methods.request.RawTransaction;
 import org.web3j.protocol.core.methods.response.EthGetTransactionCount;
 import org.web3j.protocol.core.methods.response.EthGetTransactionReceipt;
+import org.web3j.protocol.core.methods.response.EthSendTransaction;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.tx.RawTransactionManager;
@@ -119,20 +121,29 @@ public class RegistrarRequestHandler {
                 encodedFunction
         );
         RawTransactionManager transactionManager = new RawTransactionManager(web3j, credentials);
-        String transactionHash = transactionManager.signAndSend(rawTransaction).getTransactionHash();
-        CompletableFuture<EthGetTransactionReceipt> futureReceipt = web3j.ethGetTransactionReceipt(transactionHash).sendAsync();
-        executorService.submit(
-                new RegistrarReceiptSender (
-                        request.getContentId(),
-                        kafkaTemplate,
-                        etherScanSite,
-                        transactionHashTopic,
-                        blockNumberTopic,
-                        registrarErrorTopic,
-                        transactionHash,
-                        futureReceipt
-                )
-        );
+        EthSendTransaction ethSendTransaction = transactionManager.signAndSend(rawTransaction);
+        if(ethSendTransaction.hasError()) {
+            Response.Error error = ethSendTransaction.getError();
+            logger.error("error code: " + error.getCode());
+            logger.error("error message: " + error.getMessage());
+            logger.error("error data: " + error.getData());
+        } else {
+            String transactionHash = ethSendTransaction.getTransactionHash();
+            logger.info("Transaction Hash: " + transactionHash);
+            CompletableFuture<EthGetTransactionReceipt> futureReceipt = web3j.ethGetTransactionReceipt(transactionHash).sendAsync();
+            executorService.submit(
+                    new RegistrarReceiptSender(
+                            request.getContentId(),
+                            kafkaTemplate,
+                            etherScanSite,
+                            transactionHashTopic,
+                            blockNumberTopic,
+                            registrarErrorTopic,
+                            transactionHash,
+                            futureReceipt
+                    )
+            );
+        }
 
     }
 
