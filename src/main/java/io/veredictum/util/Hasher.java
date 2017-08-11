@@ -51,4 +51,14 @@ public class Hasher {
             throw new RuntimeException(e); // should be considered a bug if we are here
         }
     }
+
+    public static byte[] hashBytes(byte[] bytes) {
+        try {
+            MessageDigest digester = MessageDigest.getInstance("SHA-256");
+            return digester.digest(bytes);
+        } catch (NoSuchAlgorithmException e) {
+            LOGGER.error(e.getMessage(), e);
+            throw new RuntimeException(e); // should be considered a bug if we are here
+        }
+    }
 }

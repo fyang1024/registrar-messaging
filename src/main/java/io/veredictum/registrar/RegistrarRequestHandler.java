@@ -10,26 +10,39 @@ See MIT Licence for further details.
 
 package io.veredictum.registrar;
 
-import io.veredictum.generated.ContentAssetRegistrar;
+import io.veredictum.messaging.RegistrarReceiptSender;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import org.web3j.abi.FunctionEncoder;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.DynamicArray;
+import org.web3j.abi.datatypes.Function;
+import org.web3j.abi.datatypes.Type;
 import org.web3j.abi.datatypes.generated.Bytes32;
 import org.web3j.abi.datatypes.generated.Bytes8;
 import org.web3j.abi.datatypes.generated.Uint8;
-import org.web3j.crypto.Credentials;
-import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.request.Transaction;
+import org.web3j.protocol.core.methods.response.EthGetTransactionCount;
+import org.web3j.protocol.core.methods.response.EthGetTransactionReceipt;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.http.HttpService;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 /**
- * It converts the {@link RegistrarRequest} to a Smart Contract function call
+ * It converts the {@link ContentRegistrarRequest} to a Smart Contract function call
  * to register content ownership on the Ethereum blockchain,
  * and returns a {@link Future} of {@link TransactionReceipt}
  *
@@ -37,6 +50,9 @@ import java.util.concurrent.Future;
  */
 @Component
 public class RegistrarRequestHandler {
+
+    private ExecutorService executorService = Executors.newCachedThreadPool();
+
 
     @Value("${ethereum.account.password}")
     private String ethereumAccountPassword;
@@ -50,19 +66,70 @@ public class RegistrarRequestHandler {
     @Value("${gas.price}")
     private BigInteger gasPrice;
 
+    @Value("${contract.deployer.address}")
+    private String contractDeployerAddress;
+
     @Value("${contract.address}")
     private String contractAddress;
 
-    public Future<TransactionReceipt> handle(RegistrarRequest request) throws Exception {
+    @Value("${etherscan.site}")
+    private String etherScanSite;
+
+    @Value("${transaction.hash.kafka.topic}")
+    private String transactionHashTopic;
+
+    @Value("${block.number.kafka.topic}")
+    private String blockNumberTopic;
+
+    @Value("${registrar.error.kafka.topic}")
+    private String registrarErrorTopic;
+
+    @Value("${registrar.function.name}")
+    private String registrarFunctionName;
+
+    private final KafkaTemplate<String, String> kafkaTemplate;
+
+    @Autowired
+    public RegistrarRequestHandler(KafkaTemplate<String, String> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
+    }
+
+    public void handle(ContentRegistrarRequest request) throws Exception {
         Web3j web3j = Web3j.build(new HttpService());
-        Credentials credentials = WalletUtils.loadCredentials(ethereumAccountPassword, ethereumKeyStoreFile);
-        ContentAssetRegistrar contentAssetRegistrar = ContentAssetRegistrar.load(contractAddress, web3j, credentials, gasPrice, gasLimit);
-        DynamicArray<Address> addressDynamicArray = convert(request.getAddresses());
-        DynamicArray<Uint8> shareDynamicArray = convert(request.getShares());
-        return contentAssetRegistrar.registerContent(addressDynamicArray, shareDynamicArray,
-                new Bytes8(ByteBuffer.allocate(8).putLong(request.getContentId()).array()),
-                new Bytes32(request.getOriginalFileHash()),
-                new Bytes32(request.getTranscodedFileHash()));
+        EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(
+                contractDeployerAddress, DefaultBlockParameterName.LATEST).sendAsync().get();
+        BigInteger nonce = ethGetTransactionCount.getTransactionCount();
+        List<Type> inputParameters = new ArrayList<>();
+        inputParameters.add(convert(request.getAddresses()));
+        inputParameters.add(convert(request.getShares()));
+        inputParameters.add(new Bytes8(ByteBuffer.allocate(8).putLong(request.getContentId()).array()));
+        inputParameters.add(new Bytes32(request.getOriginalFileHash()));
+        inputParameters.add(new Bytes32(request.getTranscodedFileHash()));
+        Function function = new Function(registrarFunctionName, inputParameters, Collections.emptyList());
+        String functionEncoder = FunctionEncoder.encode(function);
+        Transaction transaction = Transaction.createFunctionCallTransaction(
+                contractDeployerAddress,
+                nonce,
+                gasPrice,
+                gasLimit,
+                contractAddress,
+                functionEncoder
+        );
+        String transactionHash = web3j.ethSendTransaction(transaction).sendAsync().get().getTransactionHash();
+        CompletableFuture<EthGetTransactionReceipt> futureReceipt = web3j.ethGetTransactionReceipt(transactionHash).sendAsync();
+        executorService.submit(
+                new RegistrarReceiptSender (
+                        request.getContentId(),
+                        kafkaTemplate,
+                        etherScanSite,
+                        transactionHashTopic,
+                        blockNumberTopic,
+                        registrarErrorTopic,
+                        transactionHash,
+                        futureReceipt
+                )
+        );
+
     }
 
     private DynamicArray<Address> convert(String[] sa) {

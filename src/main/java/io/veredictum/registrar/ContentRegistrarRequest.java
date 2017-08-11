@@ -15,7 +15,7 @@ package io.veredictum.registrar;
  *
  * @author Fei Yang <fei.yang@veredictum.io>
  */
-public class RegistrarRequest {
+public class ContentRegistrarRequest {
 
     private String[] addresses;
 
