@@ -25,13 +25,16 @@ import org.web3j.abi.datatypes.Type;
 import org.web3j.abi.datatypes.generated.Bytes32;
 import org.web3j.abi.datatypes.generated.Bytes8;
 import org.web3j.abi.datatypes.generated.Uint8;
+import org.web3j.crypto.Credentials;
+import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.request.Transaction;
+import org.web3j.protocol.core.methods.request.RawTransaction;
 import org.web3j.protocol.core.methods.response.EthGetTransactionCount;
 import org.web3j.protocol.core.methods.response.EthGetTransactionReceipt;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.http.HttpService;
+import org.web3j.tx.RawTransactionManager;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -69,9 +72,6 @@ public class RegistrarRequestHandler {
     @Value("${gas.price}")
     private BigInteger gasPrice;
 
-    @Value("${contract.deployer.address}")
-    private String contractDeployerAddress;
-
     @Value("${contract.address}")
     private String contractAddress;
 
@@ -99,9 +99,7 @@ public class RegistrarRequestHandler {
 
     public void handle(ContentRegistrarRequest request) throws Exception {
         Web3j web3j = Web3j.build(new HttpService());
-        EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(
-                contractDeployerAddress, DefaultBlockParameterName.LATEST).sendAsync().get();
-        BigInteger nonce = ethGetTransactionCount.getTransactionCount();
+        Credentials credentials = WalletUtils.loadCredentials(ethereumAccountPassword, ethereumKeyStoreFile);
         List<Type> inputParameters = new ArrayList<>();
         inputParameters.add(convert(request.getAddresses()));
         inputParameters.add(convert(request.getShares()));
@@ -109,17 +107,19 @@ public class RegistrarRequestHandler {
         inputParameters.add(new Bytes32(request.getOriginalFileHash()));
         inputParameters.add(new Bytes32(request.getTranscodedFileHash()));
         Function function = new Function(registrarFunctionName, inputParameters, Collections.emptyList());
-        String functionEncoder = FunctionEncoder.encode(function);
-        Transaction transaction = Transaction.createFunctionCallTransaction(
-                contractDeployerAddress,
+        String encodedFunction = FunctionEncoder.encode(function);
+        EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(
+                credentials.getAddress(), DefaultBlockParameterName.LATEST).sendAsync().get();
+        BigInteger nonce = ethGetTransactionCount.getTransactionCount();
+        RawTransaction rawTransaction  = RawTransaction.createTransaction(
                 nonce,
                 gasPrice,
                 gasLimit,
                 contractAddress,
-                functionEncoder
+                encodedFunction
         );
-        String transactionHash = web3j.ethSendTransaction(transaction).send().getTransactionHash();
-        logger.info("Transaction Hash: " + transactionHash);
+        RawTransactionManager transactionManager = new RawTransactionManager(web3j, credentials);
+        String transactionHash = transactionManager.signAndSend(rawTransaction).getTransactionHash();
         CompletableFuture<EthGetTransactionReceipt> futureReceipt = web3j.ethGetTransactionReceipt(transactionHash).sendAsync();
         executorService.submit(
                 new RegistrarReceiptSender (
