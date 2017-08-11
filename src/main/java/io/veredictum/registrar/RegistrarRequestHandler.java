@@ -11,6 +11,8 @@ See MIT Licence for further details.
 package io.veredictum.registrar;
 
 import io.veredictum.messaging.RegistrarReceiptSender;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -51,8 +53,9 @@ import java.util.concurrent.Future;
 @Component
 public class RegistrarRequestHandler {
 
-    private ExecutorService executorService = Executors.newCachedThreadPool();
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
+    private ExecutorService executorService = Executors.newCachedThreadPool();
 
     @Value("${ethereum.account.password}")
     private String ethereumAccountPassword;
@@ -115,7 +118,8 @@ public class RegistrarRequestHandler {
                 contractAddress,
                 functionEncoder
         );
-        String transactionHash = web3j.ethSendTransaction(transaction).sendAsync().get().getTransactionHash();
+        String transactionHash = web3j.ethSendTransaction(transaction).send().getTransactionHash();
+        logger.info("Transaction Hash: " + transactionHash);
         CompletableFuture<EthGetTransactionReceipt> futureReceipt = web3j.ethGetTransactionReceipt(transactionHash).sendAsync();
         executorService.submit(
                 new RegistrarReceiptSender (
