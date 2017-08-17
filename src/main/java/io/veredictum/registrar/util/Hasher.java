@@ -8,7 +8,7 @@ See MIT Licence for further details.
 
 */
 
-package io.veredictum.util;
+package io.veredictum.registrar.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

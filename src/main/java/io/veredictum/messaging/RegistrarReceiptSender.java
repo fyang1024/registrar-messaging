@@ -15,10 +15,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.veredictum.registrar.NoReceiptException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
 import org.web3j.protocol.core.methods.response.EthGetTransactionReceipt;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
+import java.math.BigInteger;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -28,79 +32,63 @@ import java.util.concurrent.ExecutionException;
  *
  * @author Fei Yang <fei.yang@veredictum.io>
  */
-public class RegistrarReceiptSender implements Runnable {
+
+@Component
+public class RegistrarReceiptSender {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
+    @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;
-    private long contentId;
+
+    @Value("${etherscan.site}")
     private String etherScanSite;
+
+    @Value("${transaction.hash.kafka.topic}")
     private String transactionHashTopic;
+
+    @Value("${block.number.kafka.topic}")
     private String blockNumberTopic;
+
+    @Value("${registrar.error.kafka.topic}")
     private String registrarErrorTopic;
-    private String transactionHash;
-    private CompletableFuture<EthGetTransactionReceipt> receipt;
 
-    public RegistrarReceiptSender(
-            long contentId,
-            KafkaTemplate<String, String> kafkaTemplate,
-            String etherScanSite,
-            String transactionHashTopic,
-            String blockNumberTopic,
-            String registrarErrorTopic,
-            String transactionHash,
-            CompletableFuture<EthGetTransactionReceipt> receipt
-    ) {
-        this.contentId = contentId;
-        this.kafkaTemplate = kafkaTemplate;
-        this.etherScanSite = etherScanSite;
-        this.transactionHashTopic = transactionHashTopic;
-        this.blockNumberTopic = blockNumberTopic;
-        this.registrarErrorTopic = registrarErrorTopic;
-        this.transactionHash = transactionHash;
-        this.receipt = receipt;
-    }
-
-    @Override
-    public void run() {
+    public void sendTransactionHash(long contentId, String transactionHash) {
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectNode transactionHashNode = objectMapper.createObjectNode();
         transactionHashNode.put("contentId", contentId);
         transactionHashNode.put("transactionHash", transactionHash);
-        transactionHashNode.put("url", getTransactionHashUrl());
+        transactionHashNode.put("url", getTransactionHashUrl(transactionHash));
         kafkaTemplate.send(transactionHashTopic, transactionHashNode.toString());
-        try {
-            EthGetTransactionReceipt ethGetTransactionReceipt = receipt.get();
-            Optional<TransactionReceipt> transactionReceipt = ethGetTransactionReceipt.getTransactionReceipt();
-            if (transactionReceipt.isPresent()) {
-                ObjectNode blockNumberNode = objectMapper.createObjectNode();
-                TransactionReceipt receipt = transactionReceipt.get();
-                String transactionHash = receipt.getTransactionHash();
-                String blockNumberRaw = receipt.getBlockNumberRaw();
-                blockNumberNode.put("contentId", contentId);
-                blockNumberNode.put("transactionHash", transactionHash);
-                blockNumberNode.put("blockNumber", blockNumberRaw);
-                blockNumberNode.put("url", getBlockNumberUrl(blockNumberRaw));
-                kafkaTemplate.send(blockNumberTopic, blockNumberNode.toString());
-            } else {
-                throw new NoReceiptException("No transaction receipt present");
-            }
-        } catch (InterruptedException | ExecutionException | NoReceiptException e) {
-            logger.error(e.getMessage(), e);
-            ObjectNode registrarErrorNode = objectMapper.createObjectNode();
-            registrarErrorNode.put("contentId", contentId);
-            registrarErrorNode.put("type", e.getClass().getSimpleName());
-            registrarErrorNode.put("errorMessage", e.getMessage());
-            kafkaTemplate.send(registrarErrorTopic, registrarErrorNode.toString());
-        }
-
+        logger.info("Sent: " + transactionHashNode + " to: " + transactionHashTopic);
     }
 
-    private String getTransactionHashUrl() {
+    public void sendBlockNumber(long contentId, TransactionReceipt receipt) {
+        ObjectNode blockNumberNode = new ObjectMapper().createObjectNode();
+        String transactionHash = receipt.getTransactionHash();
+        BigInteger blockNumber = receipt.getBlockNumber();
+        blockNumberNode.put("contentId", contentId);
+        blockNumberNode.put("transactionHash", transactionHash);
+        blockNumberNode.put("blockNumber", blockNumber.toString());
+        blockNumberNode.put("url", getBlockNumberUrl(blockNumber));
+        kafkaTemplate.send(blockNumberTopic, blockNumberNode.toString());
+        logger.info("Sent: " + blockNumberNode + " to: " + blockNumberTopic);
+    }
+
+    public void sendError(long contentId, Exception e) {
+        ObjectNode registrarErrorNode = new ObjectMapper().createObjectNode();
+        registrarErrorNode.put("contentId", contentId);
+        registrarErrorNode.put("type", e.getClass().getSimpleName());
+        registrarErrorNode.put("errorMessage", e.getMessage());
+        kafkaTemplate.send(registrarErrorTopic, registrarErrorNode.toString());
+        logger.info("Sent: " + registrarErrorNode + " to: " + registrarErrorTopic);
+    }
+
+    private String getTransactionHashUrl(String transactionHash) {
         return etherScanSite + "/tx/" + transactionHash;
     }
 
-    private String getBlockNumberUrl(String blockNumber) {
+    private String getBlockNumberUrl(BigInteger blockNumber) {
         return etherScanSite + "/block/" + blockNumber;
     }
 }

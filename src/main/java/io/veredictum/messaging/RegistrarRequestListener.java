@@ -12,9 +12,9 @@ package io.veredictum.messaging;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.veredictum.registrar.ContentRegistrarRequest;
+import io.veredictum.registrar.model.ContentRegistrarRequest;
 import io.veredictum.registrar.RegistrarRequestHandler;
-import io.veredictum.util.Hasher;
+import io.veredictum.registrar.util.Hasher;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
