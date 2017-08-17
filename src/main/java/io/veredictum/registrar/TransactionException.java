@@ -22,4 +22,5 @@ class TransactionException extends Exception {
     TransactionException(Response.Error error) {
         super(error.getMessage());
     }
+
 }
